@@ -1,0 +1,232 @@
+# config.yaml
+# ---------------------------------------------------------
+# Data
+data:
+  path: "./data/Main_20260128_cleansed.csv"        # Read the data
+  input_len: 13      # Number of input features (excluding target columns)
+  output_len: 4      # Number of target columns
+  test_size: 0.3     # Proportion of the dataset to include in the test split
+  random_seed: 98 #123, 42, 36
+
+# Data loader
+data_loader:
+  impute_method: "kde"
+  preserve_null: true
+  # Generate diagnostic reports only; do not affect training data.
+  save_conflict_report: false
+  conflict_report_prefix: "duplicate_input"
+  # conflict_report_dir: "./data"
+  aggregate_duplicate_inputs: true
+  duplicate_target_agg: "median"
+  promoter_ratio_cols:
+    - "Promoter 1 ratio (Promoter 1:Cu)"
+    - "Promoter 2 ratio (Promoter 2:Cu)"
+  element_embedding: "advanced"
+  promoter_onehot: true
+  promoter_interaction_features: true
+  promoter_pair_onehot: true
+  promoter_pair_onehot_min_count: 2
+  promoter_pair_onehot_max_categories: 64
+  promoter_interaction_eps: 1e-8
+  log_transform_cols:
+    - "Calcination time (h)"
+    - "Molar ratio (Zn:Cu)"
+  # Add extra log-transform columns only for specific models, on top of the base list above.
+  log_transform_cols_extra_for:
+    SVM:
+      - "H2/CO2 ratio (-)"
+      - "Promoter 1 ratio (Promoter 1:Cu)"
+      - "Promoter 2 ratio (Promoter 2:Cu)"
+    ANN:
+      - "H2/CO2 ratio (-)"
+      - "Promoter 1 ratio (Promoter 1:Cu)"
+      - "Promoter 2 ratio (Promoter 2:Cu)"
+  log_transform_eps: 1e-8
+
+# Preprocessing
+preprocessing:
+  standardize_input: true
+  standardize_output: true
+  standardize_all_features: true
+  # Enable full-feature scaling for these models only, including one-hot and embeddings.
+  standardize_all_features_for: ["SVM", "ANN"]
+  bounded_output: false
+  bounded_output_columns: ["Methanol selectivity (%)", "CO2 conversion efficiency (%)", "CO selectivity (%)"]
+
+# Models
+# When training multiple models, keep only checkpoint_path here; all other hyperparameters come from Optuna.
+model:
+  types: ["RF", "CatBoost", "DT", "ANN", "XGB", "SVM"]
+  # For deep learning models (ANN), keep only checkpoint_path for later loading.
+  ann_params:
+    epochs: 6000
+  dt_params:
+    # Keep the default random_state here; all other parameters are updated by Optuna.
+    random_state: 42
+  rf_params:
+    random_state: 42
+    n_jobs: -1
+  catboost_params:
+    random_seed: 42
+    early_stopping_rounds: 50
+    thread_count: -1
+    random_strength: 1.0
+    bagging_temperature: 0.0
+    rsm: 1.0
+  xgb_params:
+    random_seed: 42
+    early_stopping_rounds: 50
+    n_jobs: -1
+    min_child_weight: 1.0
+    gamma: 0.0
+    subsample: 1.0
+    colsample_bytree: 1.0
+  svm_params:
+    kernel: "rbf"
+    C: 10.0
+    epsilon: 0.1
+    gamma: "scale"
+    degree: 3
+    coef0: 0.0
+    max_iter: 20000
+    n_jobs: -1
+
+# Loss configuration, mainly for deep learning models
+loss:
+  type: "mse"
+
+# Training
+training:
+  log_interval: 5
+
+# Evaluation
+evaluation:
+  save_loss_curve: true # revert later if needed
+  save_scatter_with_marginals_plot: true
+  save_correlation: true # revert later if needed
+  save_models_evaluation_bar: true # revert later if needed
+  save_data_analysis_plots: true # revert later if needed
+  do_cross_validation: true      # Whether to run K-Fold cross-validation
+  save_shap: true # revert later if needed
+  save_multi_model_residual_plot: true # revert later if needed
+  save_optuna: true # revert later if needed
+
+# Inference
+inference:
+  models: ["CatBoost", "ANN", "SVM"]
+  max_combinations: null
+  n_points: 50                 # Keep this if it already existed.
+  enable_3d_heatmap: true # Master switch for 3D Heatmap-X
+  skip_3d_models: ["SVM", "ANN"]      # Run 3D only for CatBoost
+  heatmap_axes: # Define axes here; the length determines the dimension
+    - "Temperature (°C)"
+    - "GHSV (mL/g.h) (LN scale)"
+    - "Pressure (bar)"         # Two variables -> 2D only; three variables -> auto 2D x3 plus 3D
+  confusion_axes:
+    row_name: "Promoter 1"
+    col_name: "Type of sysnthesis procedure"
+  confusion_axes_by_model:
+    SVM:
+      row_name: "Promoter 1"
+      col_name: "Promoter 2"
+    CatBoost:
+      row_name: "Promoter 1"
+      col_name: "Promoter 2"
+
+# Optuna tuning
+optuna:
+  overfit_penalty_alpha: 0.0
+  enable: true
+  n_jobs: 1
+  trials: 1400
+  models: ["RF", "CatBoost", "DT", "ANN", "XGB", "SVM"]
+  slice_params:
+    ANN: ["hidden_dims", "learning_rate", "dropout", "weight_decay", "batch_size"]
+    RF: ["n_estimators", "max_depth", "ccp_alpha"]
+    DT: ["max_depth", "ccp_alpha"]
+    CatBoost: ["iterations", "learning_rate", "depth", "l2_leaf_reg", "random_strength", "bagging_temperature", "rsm"]
+    XGB: ["n_estimators", "learning_rate", "max_depth", "reg_alpha", "reg_lambda", "min_child_weight", "gamma", "subsample", "colsample_bytree"]
+    SVM: ["kernel", "C", "epsilon", "gamma"]
+  ann_params:
+    hidden_dims_choices:
+      - [8, 8]
+      - [16, 16]
+      - [8, 16, 8]
+      - [16, 32, 16]
+      - [16, 64, 16]
+      - [16, 32, 32, 16]
+      - [16, 32, 64, 32, 16]
+    dropout_min: 0.0
+    dropout_max: 0.1
+    learning_rate_min: 1e-5
+    learning_rate_max: 1e-2
+    weight_decay_min: 1e-6
+    weight_decay_max: 5e-4
+    batch_size_choices: [64, 128, 256]
+    optimizer_choices: ["AdamW"]
+    activation_choices: ["ReLU", "leakyrelu"]
+    tuning_epochs: 500
+    early_stopping: true
+    patience: 5
+    log_interval: 5
+  rf_params:
+    n_estimators_min: 50
+    n_estimators_max: 300
+    max_depth_min: 2
+    max_depth_max: 12
+    ccp_alpha_min: 0.0
+    ccp_alpha_max: 0.03
+    min_samples_leaf_min: 1
+    min_samples_leaf_max: 9
+  dt_params:
+    max_depth_min: 4
+    max_depth_max: 12
+    ccp_alpha_min: 0.0
+    ccp_alpha_max: 0.03
+  catboost_params:
+    iterations_min: 200
+    iterations_max: 1000
+    learning_rate_min: 0.01
+    learning_rate_max: 0.1
+    depth_min: 4
+    depth_max: 12
+    l2_leaf_reg_min: 1.0
+    l2_leaf_reg_max: 5.0
+    random_strength_min: 1e-3
+    random_strength_max: 5.0
+    bagging_temperature_min: 0.0
+    bagging_temperature_max: 10.0
+    rsm_min: 0.6
+    rsm_max: 1.0
+  xgb_params:
+    n_estimators_min: 100
+    n_estimators_max: 500
+    learning_rate_min: 0.01
+    learning_rate_max: 0.1
+    max_depth_min: 3
+    max_depth_max: 10
+    reg_alpha_min: 1e-8
+    reg_alpha_max: 1e-1
+    reg_lambda_min: 1.0
+    reg_lambda_max: 10.0
+    min_child_weight_min: 1.0
+    min_child_weight_max: 20.0
+    gamma_min: 1e-8
+    gamma_max: 1.0
+    subsample_min: 0.6
+    subsample_max: 1.0
+    colsample_bytree_min: 0.6
+    colsample_bytree_max: 1.0
+  svm_params:
+    kernel_choices: ["rbf", "poly", "sigmoid"]
+    C_min: 1e-2
+    C_max: 300.0
+    epsilon_min: 0.001
+    epsilon_max: 1.0
+    gamma_min: 1e-5
+    gamma_max: 1e-1
+    degree_min: 2
+    degree_max: 6
+    coef0_min: 0.0
+    coef0_max: 2.0
+    max_iter: 20000
