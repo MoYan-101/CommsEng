@@ -5,7 +5,7 @@ data:
   path: "./data/Main_20260128_cleansed.csv"        # Read the data
   input_len: 13      # Number of input features (excluding target columns)
   output_len: 4      # Number of target columns
-  test_size: 0.3     # Proportion of the dataset to include in the test split
+  test_size: 0.3     # Proportion of the dataset to include in the validation split
   random_seed: 98 #123, 42, 36
 
 # Data loader
@@ -16,8 +16,6 @@ data_loader:
   save_conflict_report: false
   conflict_report_prefix: "duplicate_input"
   # conflict_report_dir: "./data"
-  aggregate_duplicate_inputs: true
-  duplicate_target_agg: "median"
   promoter_ratio_cols:
     - "Promoter 1 ratio (Promoter 1:Cu)"
     - "Promoter 2 ratio (Promoter 2:Cu)"
