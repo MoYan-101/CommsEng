@@ -1,4 +1,4 @@
-# Catalyst ML Pipeline
+# This repository is for the paper we submitted to Comms.Eng
 
 This repository provides an end-to-end machine learning pipeline for catalyst-performance prediction. It covers data preprocessing, model training, hyperparameter tuning, inference, and figure generation in a single workflow.
 
