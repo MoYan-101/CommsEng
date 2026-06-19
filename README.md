@@ -51,3 +51,4 @@ Common settings:
 
 - 3D heatmaps can be expensive; use `skip_3d_models` and `max_combinations` to control runtime.
 - SHAP for SVM can be slow because it relies on kernel-based explainers.
+- For the complete dataset, please email the first author or the corresponding author of Yan, M., Yao, C., Wu, S. et al. A machine learning perspective on three decades of methanol synthesis: research framework and experimental operation insights. Commun Eng (2026). https://doi.org/10.1038/s44172-026-00706-4.
